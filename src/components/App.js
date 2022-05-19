@@ -1,8 +1,8 @@
 import React from "react";
-import { Route, Redirect } from "react-router-dom";
+import { Route, Switch, useHistory } from "react-router-dom";
 
-import Register from "./Register.js";
 import Login from "./Login.js";
+import Register from "./Register.js";
 import Header from "./Header.js";
 import Footer from "./Footer.js";
 import Main from "./Main.js";
@@ -11,12 +11,22 @@ import PopupWithForm from "./PopupWithForm.js";
 import ImagePopup from "./ImagePopup.js";
 import EditProfilePopup from "./EditProfilePopup.js";
 import EditAvatarPopup from "./EditAvatarPopup.js";
+import ProtectedRoute from "./ProtectedRoute";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
 import { api } from "./../utils/api.js";
+import { auth } from "./../auth.js";
 
 function App() {
   const [currentUser, setCurrentUser] = React.useState({});
+  const history = useHistory();
+  const [logInfo, setLogInfo] = React.useState({
+    id: "",
+    email: "",
+  });
 
+  const [loggedIn, setLoggedIn] = React.useState(
+    localStorage.getItem("jwt") ? true : false
+  );
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] =
     React.useState(false);
   const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] =
@@ -32,6 +42,48 @@ function App() {
   const [cards, setCards] = React.useState([]);
 
   React.useEffect(() => {
+    const jwt = localStorage.getItem("jwt");
+
+    if (jwt) {
+      auth
+        .getContent(jwt)
+        .then((res) => {
+          if (res) {
+            setLogInfo({
+              id: res.data._id,
+              email: res.data.email,
+            });
+          }
+        })
+        .catch((err) => console.log(err));
+    }
+  }, []);
+
+  // React.useEffect(() => {
+  //   const jwt = localStorage.getItem("jwt");
+  //   console.log(jwt);
+  //   if (jwt) {
+  //     Promise.all([
+  //       auth.getContent(jwt),
+  //       api.getUserInfo(),
+  //       api.getInitialCards(),
+  //     ])
+  //       .then(([res, userData, cards]) => {
+  //         if (res) {
+  //           const userData = {
+  //             id: res.data._id,
+  //             email: res.data.email,
+  //           };
+  //           setLoggedIn({ loggedIn: true, userData });
+  //         }
+  //         setCurrentUser(userData);
+  //         setCards(cards);
+  //       })
+  //       .catch((err) => console.log(err));
+  //   }
+  // }, []);
+
+  React.useEffect(() => {
     Promise.all([api.getUserInfo(), api.getInitialCards()])
       .then(([userData, cards]) => {
         setCurrentUser(userData);
@@ -41,6 +93,15 @@ function App() {
         console.log(err);
       });
   }, []);
+
+  function handleLogin() {
+    setLoggedIn(true);
+  }
+
+  function signOut() {
+    localStorage.removeItem("jwt");
+    history.push("/sign-in");
+  }
 
   function handleAddPlaceSubmit(obj, clearInput) {
     setValueSubmit("Сохранение...");
@@ -155,60 +216,82 @@ function App() {
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
-      <Route path="/sign-up">
-        <Register />
-      </Route>
-      <Route path="/sign-in">
-        <Login />
-      </Route>
-      <Route exact path="/">
-        <div className="page">
-          <Header />
-          <Main
-            onEditAvatar={handleEditAvatarClick}
-            onEditProfile={handleEditProfileClick}
-            onAddPlace={handleAddPlaceClick}
-            onImagePopup={handleCardClick}
-            onCardLike={handleCardLike}
-            onCardDelete={onConfirmDelete}
-            cards={cards}
-          />
-          <Footer />
-          <section className="popups" tabIndex="0">
-            <EditAvatarPopup
-              isOpen={isEditAvatarPopupOpen}
-              onClose={closeAllPopups}
-              onUpdateAvatar={handleUpdateAvatar}
-              text={valueSubmit}
+      <div className="page">
+        <Switch>
+          <ProtectedRoute exact path="/" loggedIn={loggedIn} />
+
+          <Route path="/sign-up">
+            <Header
+              infoLink="Войти"
+              link="/sign-in"
+              signOut={null}
+              email={null}
             />
-            <EditProfilePopup
-              isOpen={isEditProfilePopupOpen}
-              onClose={closeAllPopups}
-              onUpdateUser={handleUpdateUser}
-              text={valueSubmit}
+            <Register />
+          </Route>
+          <Route path="/sign-in">
+            <Header
+              infoLink="Регистрация"
+              link="/sign-up"
+              signOut={null}
+              email={null}
             />
-            <AddPlacePopup
-              isOpen={isAddPlacePopupOpen}
-              onClose={closeAllPopups}
-              onAddPlace={handleAddPlaceSubmit}
-              text={valueSubmit}
+            <Login handleLogin={handleLogin} />
+          </Route>
+
+          <Route path="/main">
+            <Header
+              infoLink="Выйти"
+              signOut={signOut}
+              link="/sign-in"
+              email={logInfo.email}
             />
-            <PopupWithForm
-              name="delete-card"
-              title="Вы уверены?"
-              text={valueSubmitDeleteCard}
-              isOpen={isAddConfirmPopupOpen}
-              onClose={closeAllPopups}
-              onSubmit={handleCardDelete}
-            ></PopupWithForm>
-            <ImagePopup
-              name="image"
-              card={selectedCard}
-              onClose={closeAllPopups}
+            <Main
+              onEditAvatar={handleEditAvatarClick}
+              onEditProfile={handleEditProfileClick}
+              onAddPlace={handleAddPlaceClick}
+              onImagePopup={handleCardClick}
+              onCardLike={handleCardLike}
+              onCardDelete={onConfirmDelete}
+              cards={cards}
             />
-          </section>
-        </div>
-      </Route>
+            <Footer />
+            <section className="popups" tabIndex="0">
+              <EditAvatarPopup
+                isOpen={isEditAvatarPopupOpen}
+                onClose={closeAllPopups}
+                onUpdateAvatar={handleUpdateAvatar}
+                text={valueSubmit}
+              />
+              <EditProfilePopup
+                isOpen={isEditProfilePopupOpen}
+                onClose={closeAllPopups}
+                onUpdateUser={handleUpdateUser}
+                text={valueSubmit}
+              />
+              <AddPlacePopup
+                isOpen={isAddPlacePopupOpen}
+                onClose={closeAllPopups}
+                onAddPlace={handleAddPlaceSubmit}
+                text={valueSubmit}
+              />
+              <PopupWithForm
+                name="delete-card"
+                title="Вы уверены?"
+                text={valueSubmitDeleteCard}
+                isOpen={isAddConfirmPopupOpen}
+                onClose={closeAllPopups}
+                onSubmit={handleCardDelete}
+              ></PopupWithForm>
+              <ImagePopup
+                name="image"
+                card={selectedCard}
+                onClose={closeAllPopups}
+              />
+            </section>
+          </Route>
+        </Switch>
+      </div>
     </CurrentUserContext.Provider>
   );
 }

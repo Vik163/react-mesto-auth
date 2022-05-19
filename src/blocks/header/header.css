@@ -1,8 +1,10 @@
 .header {
   flex: 0 0 auto;
-  display: block;
+  display: flex;
+  justify-content: space-between;
   max-width: 880px;
   width: 100%;
+  color: white;
   padding-bottom: 41px;
   border-bottom: 1px solid #545454;
 }
@@ -13,5 +15,3 @@
     padding-bottom: 30px;
   }
 }
-
-
