@@ -17,7 +17,7 @@
   margin-bottom: 216px;
 }
 
-::placeholder {
+.register__input::placeholder {
   color: white;
 }
 

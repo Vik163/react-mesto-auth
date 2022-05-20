@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Route, Switch, useHistory } from "react-router-dom";
 
 import Login from "./Login.js";
@@ -11,37 +11,35 @@ import PopupWithForm from "./PopupWithForm.js";
 import ImagePopup from "./ImagePopup.js";
 import EditProfilePopup from "./EditProfilePopup.js";
 import EditAvatarPopup from "./EditAvatarPopup.js";
+import InfoTooltip from "./InfoTooltip.js";
 import ProtectedRoute from "./ProtectedRoute";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
 import { api } from "./../utils/api.js";
 import { auth } from "./../auth.js";
 
 function App() {
-  const [currentUser, setCurrentUser] = React.useState({});
+  const [currentUser, setCurrentUser] = useState({});
   const history = useHistory();
-  const [logInfo, setLogInfo] = React.useState({
+  const [logInfo, setLogInfo] = useState({
     id: "",
     email: "",
   });
 
-  const [loggedIn, setLoggedIn] = React.useState(
-    localStorage.getItem("jwt") ? true : false
-  );
-  const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] =
-    React.useState(false);
-  const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] =
-    React.useState(false);
-  const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = React.useState(false);
-  const [isAddConfirmPopupOpen, setIsAddConfirmPopupOpen] =
-    React.useState(false);
-  const [valueSubmit, setValueSubmit] = React.useState("Сохранить");
-  const [valueSubmitDeleteCard, setValueSubmitDeleteCard] =
-    React.useState("Да");
-  const [selectedCard, setSelectedCard] = React.useState({});
-  const [cardDelete, setCardDelete] = React.useState({});
-  const [cards, setCards] = React.useState([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = useState(false);
+  const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = useState(false);
+  const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = useState(false);
+  const [isAddInfoTooltip, setIsAddInfoTooltip] = useState(false);
+  const [isSign, setIsSign] = useState(false);
+  const [messageInfoTooltip, setMessageInfoTooltip] = useState("");
+  const [isAddConfirmPopupOpen, setIsAddConfirmPopupOpen] = useState(false);
+  const [valueSubmit, setValueSubmit] = useState("Сохранить");
+  const [valueSubmitDeleteCard, setValueSubmitDeleteCard] = useState("Да");
+  const [selectedCard, setSelectedCard] = useState({});
+  const [cardDelete, setCardDelete] = useState({});
+  const [cards, setCards] = useState([]);
 
-  React.useEffect(() => {
+  const checkToken = () => {
     const jwt = localStorage.getItem("jwt");
 
     if (jwt) {
@@ -53,37 +51,24 @@ function App() {
               id: res.data._id,
               email: res.data.email,
             });
+            setLoggedIn(true);
           }
         })
         .catch((err) => console.log(err));
     }
+  };
+
+  useEffect(() => {
+    checkToken();
   }, []);
 
-  // React.useEffect(() => {
-  //   const jwt = localStorage.getItem("jwt");
-  //   console.log(jwt);
-  //   if (jwt) {
-  //     Promise.all([
-  //       auth.getContent(jwt),
-  //       api.getUserInfo(),
-  //       api.getInitialCards(),
-  //     ])
-  //       .then(([res, userData, cards]) => {
-  //         if (res) {
-  //           const userData = {
-  //             id: res.data._id,
-  //             email: res.data.email,
-  //           };
-  //           setLoggedIn({ loggedIn: true, userData });
-  //         }
-  //         setCurrentUser(userData);
-  //         setCards(cards);
-  //       })
-  //       .catch((err) => console.log(err));
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (loggedIn) {
+      history.push("/main");
+    }
+  }, [loggedIn]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     Promise.all([api.getUserInfo(), api.getInitialCards()])
       .then(([userData, cards]) => {
         setCurrentUser(userData);
@@ -94,12 +79,47 @@ function App() {
       });
   }, []);
 
-  function handleLogin() {
-    setLoggedIn(true);
+  function handleRegister({ password, email }) {
+    return auth
+      .registration(password, email)
+      .then((res) => {
+        if (res) {
+          setMessageInfoTooltip("Вы успешно зарегистрировались!");
+          setIsSign(true);
+          setIsAddInfoTooltip(true);
+
+          history.push("/login");
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        setMessageInfoTooltip("Что-то пошло не так! Попробуйте ещё раз.");
+        setIsSign(false);
+        setIsAddInfoTooltip(true);
+      });
+  }
+
+  function handleLogin({ password, email }) {
+    return auth
+      .authorization(password, email)
+      .then((data) => {
+        if (data.token) {
+          localStorage.setItem("jwt", data.token);
+          checkToken();
+
+          history.push("/");
+        }
+      })
+      .catch((err) => console.log(err));
   }
 
   function signOut() {
     localStorage.removeItem("jwt");
+    setLoggedIn(false);
+    setLogInfo({
+      id: null,
+      email: null,
+    });
     history.push("/sign-in");
   }
 
@@ -212,6 +232,7 @@ function App() {
     setIsAddPlacePopupOpen(false);
     setSelectedCard({});
     setIsAddConfirmPopupOpen(false);
+    setIsAddInfoTooltip(false);
   }
 
   return (
@@ -227,7 +248,13 @@ function App() {
               signOut={null}
               email={null}
             />
-            <Register />
+            <Register handleRegister={handleRegister} />
+            <InfoTooltip
+              sign={isSign}
+              isOpen={isAddInfoTooltip}
+              onClose={closeAllPopups}
+              text={messageInfoTooltip}
+            />
           </Route>
           <Route path="/sign-in">
             <Header
@@ -239,7 +266,7 @@ function App() {
             <Login handleLogin={handleLogin} />
           </Route>
 
-          <Route path="/main">
+          <ProtectedRoute path="/main" loggedIn={loggedIn}>
             <Header
               infoLink="Выйти"
               signOut={signOut}
@@ -275,6 +302,7 @@ function App() {
                 onAddPlace={handleAddPlaceSubmit}
                 text={valueSubmit}
               />
+
               <PopupWithForm
                 name="delete-card"
                 title="Вы уверены?"
@@ -289,7 +317,7 @@ function App() {
                 onClose={closeAllPopups}
               />
             </section>
-          </Route>
+          </ProtectedRoute>
         </Switch>
       </div>
     </CurrentUserContext.Provider>
