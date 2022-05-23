@@ -36,7 +36,7 @@ class Auth {
     }).then(this._checkResponse);
   }
 
-  getContent(jwt) {
+  checkToken(jwt) {
     return fetch(`${this._settings.baseUrl}/users/me`, {
       method: "GET",
       headers: {

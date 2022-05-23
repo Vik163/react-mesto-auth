@@ -15,7 +15,7 @@ import InfoTooltip from "./InfoTooltip.js";
 import ProtectedRoute from "./ProtectedRoute";
 import { CurrentUserContext } from "../contexts/CurrentUserContext";
 import { api } from "./../utils/api.js";
-import { auth } from "./../auth.js";
+import { auth } from "../utils/auth.js";
 
 function App() {
   const [currentUser, setCurrentUser] = useState({});
@@ -44,7 +44,7 @@ function App() {
 
     if (jwt) {
       auth
-        .getContent(jwt)
+        .checkToken(jwt)
         .then((res) => {
           if (res) {
             setLogInfo({
@@ -86,15 +86,16 @@ function App() {
         if (res) {
           setMessageInfoTooltip("Вы успешно зарегистрировались!");
           setIsSign(true);
-          setIsAddInfoTooltip(true);
 
-          history.push("/login");
+          history.push("/sign-in");
         }
       })
       .catch((err) => {
         console.log(err);
         setMessageInfoTooltip("Что-то пошло не так! Попробуйте ещё раз.");
         setIsSign(false);
+      })
+      .finally(() => {
         setIsAddInfoTooltip(true);
       });
   }
@@ -242,6 +243,12 @@ function App() {
           <ProtectedRoute exact path="/" loggedIn={loggedIn} />
 
           <Route path="/sign-up">
+            <InfoTooltip
+              sign={isSign}
+              isOpen={isAddInfoTooltip}
+              onClose={closeAllPopups}
+              text={messageInfoTooltip}
+            />
             <Header
               infoLink="Войти"
               link="/sign-in"
@@ -249,14 +256,14 @@ function App() {
               email={null}
             />
             <Register handleRegister={handleRegister} />
+          </Route>
+          <Route path="/sign-in">
             <InfoTooltip
               sign={isSign}
               isOpen={isAddInfoTooltip}
               onClose={closeAllPopups}
               text={messageInfoTooltip}
             />
-          </Route>
-          <Route path="/sign-in">
             <Header
               infoLink="Регистрация"
               link="/sign-up"
@@ -266,7 +273,7 @@ function App() {
             <Login handleLogin={handleLogin} />
           </Route>
 
-          <ProtectedRoute path="/main" loggedIn={loggedIn}>
+          <Route path="/main" loggedIn={loggedIn}>
             <Header
               infoLink="Выйти"
               signOut={signOut}
@@ -317,7 +324,7 @@ function App() {
                 onClose={closeAllPopups}
               />
             </section>
-          </ProtectedRoute>
+          </Route>
         </Switch>
       </div>
     </CurrentUserContext.Provider>

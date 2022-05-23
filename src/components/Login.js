@@ -27,7 +27,7 @@ function Login(props) {
     <div className="register">
       <h2 className="register__title">Вход</h2>
 
-      <form onSubmit={handleSubmit}>
+      <form className="register__form" onSubmit={handleSubmit}>
         <input
           className="register__input register__input_type_email"
           id="email"

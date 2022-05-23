@@ -26,3 +26,11 @@
   -webkit-text-fill-color: white !important;
   color: white !important;
 }
+
+@media screen and (max-width: 600px) {
+  .register__input {
+    width: 260px;
+    font-size: 14px;
+    line-height: 17px;
+  }
+}

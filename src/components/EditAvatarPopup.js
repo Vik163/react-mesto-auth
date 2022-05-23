@@ -3,15 +3,10 @@ import PopupWithForm from "./PopupWithForm.js";
 
 function EditAvatarPopup(props) {
   const { text, isOpen, onClose, onUpdateAvatar } = props;
-  const [valueAvatar, setValueAvatar] = React.useState("");
   const textInput = React.useRef({});
 
-  function handleChangeAvatar(e) {
-    setValueAvatar(e.target.value);
-  }
-
   function clearInput() {
-    setValueAvatar("");
+    textInput.current.value = "";
   }
 
   function handleSubmit(e) {
@@ -39,8 +34,6 @@ function EditAvatarPopup(props) {
           className="popup__input popup__input_type_link"
           id="url-input-avatar"
           type="url"
-          onChange={handleChangeAvatar}
-          value={valueAvatar}
           ref={textInput}
           placeholder="Ссылка на картинку"
           name="link"
