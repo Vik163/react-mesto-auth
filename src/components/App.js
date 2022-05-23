@@ -64,7 +64,7 @@ function App() {
 
   useEffect(() => {
     if (loggedIn) {
-      history.push("/main");
+      history.push("/");
     }
   }, [loggedIn]);
 
@@ -240,8 +240,6 @@ function App() {
     <CurrentUserContext.Provider value={currentUser}>
       <div className="page">
         <Switch>
-          <ProtectedRoute exact path="/" loggedIn={loggedIn} />
-
           <Route path="/sign-up">
             <InfoTooltip
               sign={isSign}
@@ -273,7 +271,7 @@ function App() {
             <Login handleLogin={handleLogin} />
           </Route>
 
-          <Route path="/main" loggedIn={loggedIn}>
+          <ProtectedRoute exact path="/" loggedIn={loggedIn}>
             <Header
               infoLink="Выйти"
               signOut={signOut}
@@ -324,7 +322,7 @@ function App() {
                 onClose={closeAllPopups}
               />
             </section>
-          </Route>
+          </ProtectedRoute>
         </Switch>
       </div>
     </CurrentUserContext.Provider>
